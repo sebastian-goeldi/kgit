@@ -1,0 +1,33 @@
+version:
+    type: string
+    value: "0.0.1"
+    ro: True
+logging:
+    enabled:
+        type: bool
+        value: True
+        description: "Enable Logging"
+    levels:
+        type: list
+        value:
+            - DEBUG
+            - INFO
+            - WARNING
+            - ERROR
+            - CRITICAL
+    logstreamlevel:
+        type: listindex
+        value: logging.levels[3]
+        description: "Log Level of Stream (Console)"
+    logfilelevel:
+        type: listindex
+        value: logging.levels[2]
+        description: "Log Level for File Logging"
+    logfile:
+        type: string
+        value: "kgit.log"
+        description: "Log Filename"
+repository:
+    type: string
+    value: ""
+    description: "Repository URL (YAML file)"

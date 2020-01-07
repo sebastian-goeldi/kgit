@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<klayout-macro>
+ <description/>
+ <version/>
+ <category>pymacros</category>
+ <prolog/>
+ <epilog/>
+ <doc/>
+ <autorun>true</autorun>
+ <autorun-early>false</autorun-early>
+ <shortcut/>
+ <show-in-menu>false</show-in-menu>
+ <group-name/>
+ <menu-path/>
+ <interpreter>python</interpreter>
+ <dsl-interpreter-name/>
+ <text>import pya
+from pathlib import Path
+import kgit.menu
+
+# Main
+
+iconpath = Path(__file__).parent.parent / "KGit.png"
+app = pya.Application.instance()
+menu = app.main_window().menu()
+kgit_action = pya.Action()
+kgit_action.title = "Manage Git Packages"
+kgit_action.on_triggered = kgit.menu.open_dialog
+kgit_action.icon = str(iconpath)
+kgit_action.icon_text = "KLayout Git"
+if not menu.is_menu('kgit_menu'):
+    menu.insert_separator('tools_menu.technologies+','kgit_group')
+    menu.insert_item('tools_menu.kgit_group+',"kgit_menu",kgit_action)
+</text>
+</klayout-macro>
