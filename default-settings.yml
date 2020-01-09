@@ -28,6 +28,7 @@ logging:
         value: "kgit.log"
         description: "Log Filename"
 repository:
-    type: string
-    value: ""
-    description: "Repository URL (YAML file)"
+    url:
+        type: string
+        value: ""
+        description: "Repository URL (YAML file)"

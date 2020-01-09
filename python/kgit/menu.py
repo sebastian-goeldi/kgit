@@ -2,6 +2,7 @@ import pya
 import kgit
 import importlib
 import yaml
+import git
 
 class Dialog(pya.QDialog):
 
@@ -62,10 +63,10 @@ class Dialog(pya.QDialog):
         vb = pya.QVBoxLayout(groupbox)
         self.settings['repository'] = {}
         repdic = self.settings['repository']
-        repdic['repository'] = kgit.settings.repository()
+        repdic['url'] = (kgit.settings.repository.url(),kgit.settings.repository.url)
         l = pya.QHBoxLayout()
-        le = pya.QLineEdit(repdic['repository'],self)
-        la = pya.QLabel(kgit.settings.repository.description,self)
+        le = pya.QLineEdit(repdic['url'][0],self)
+        la = pya.QLabel(kgit.settings.repository.url.description,self)
         l.addWidget(le)
         l.addWidget(la)
         vb.addLayout(l)
@@ -76,8 +77,8 @@ class Dialog(pya.QDialog):
         groupbox = pya.QGroupBox(cat, self)
         optionvbox.addWidget(groupbox)
         vb = pya.QVBoxLayout(groupbox)
-        self.settings['logs'] = {}
-        logdic = self.settings['logs']
+        self.settings['logging'] = {}
+        logdic = self.settings['logging']
         logdic['filelvl'] = (kgit.settings.logging.logfilelevel.value.index,kgit.settings.logging.logfilelevel)
         logdic['streamlvl'] = (kgit.settings.logging.logstreamlevel.value.index,kgit.settings.logging.logstreamlevel)
         ## File Logging
@@ -150,29 +151,33 @@ class Dialog(pya.QDialog):
                 description += f"\nProject Sub-URL:\t{s['subdir']}"
             item = pya.QListWidgetItem(description)
             item.whatsThis=s['name']
+            repo = git.Repo(r.parent)
+            if repo.git.status('s'):
+                item.backgroundColor=pya.QColor(255,255,0)
             items.append(item)
             self.repolist.addItem(item)
         remoterepos = kgit.getRemoteRepos()
-        for r in remoterepos:
-            if r['name'] in [i.whatsThis for i in items]:
-                continue
-            if '/' in r['name']:
-                description = (f"Name:\t\t{r['name'].rsplit('/',1)[1]}\n"
-                               f"Project:\t\t{r['name'].rsplit('/',1)[0]}\n"
-                               )
-            else:
-                description = f"Name:\t\t{r['name']}\n"
-            description += "Location:\t\tremote\n"
-            #if 'author' in r:
-            #    description += f"Author:\t\t{r['author']}\n"
-            #    pass
-            description += f"Project URL:\t\t{r['url']}"
-            if 'subdir' in r:
-                description += f"\nProject Sub-URL:\t{r['subdir']}"
-                
-            item = pya.QListWidgetItem(description)
-            item.whatsThis=r['name']
-            self.repolist.addItem(item)
+        if remoterepos is not None:
+            for r in remoterepos:
+                if r['name'] in [i.whatsThis for i in items]:
+                    continue
+                if '/' in r['name']:
+                    description = (f"Name:\t\t{r['name'].rsplit('/',1)[1]}\n"
+                                   f"Project:\t\t{r['name'].rsplit('/',1)[0]}\n"
+                                   )
+                else:
+                    description = f"Name:\t\t{r['name']}\n"
+                description += "Location:\t\tremote\n"
+                #if 'author' in r:
+                #    description += f"Author:\t\t{r['author']}\n"
+                #    pass
+                description += f"Project URL:\t\t{r['url']}"
+                if 'subdir' in r:
+                    description += f"\nProject Sub-URL:\t{r['subdir']}"
+                    
+                item = pya.QListWidgetItem(description)
+                item.whatsThis=r['name']
+                self.repolist.addItem(item)
         
         vbox.addWidget(self.repolist)
         
@@ -218,18 +223,27 @@ class Dialog(pya.QDialog):
         for c in self.settings.keys():
             v = self.settings[c]
             for s in v.keys():
-                setattr(getattr(kgit.settings, c), s, self.settings[c][s][1](self.settings[c][s][0]))
-        sdict = {}
-        for k in kgit.settings.__dict__.keys():
-            sdict[k] = {}
-            for kk in kgit.settings.__dict__[k].__dict__.keys():
-                sdict[k][kk] = kgit.settings.__dict__[k].__dict__[kk]
-        with open(self.settingspath, 'w') as f:
-            json.dump(sdict, f, indent=4, sort_keys=False)
-        importlib.reload(kgit)
-        set_settings()
+                #setattr(getattr(getattr(kgit.settings, c), s), 'value', self.settings[c][s][0])
+                setattr(self.settings[c][s][1],'value',self.settings[c][s][0])
+        sdict = self.settings2dict(kgit.settings)
+        
+        with open(kgit.settings_path, 'w') as f:
+            yaml.dump(sdict, f, sort_keys=True, default_flow_style=False)
+        kgit.reload_settings(kgit.settings_path)
         self.accept()
 
+    def settings2dict(self,settingsobj):
+        d = {}
+        for k in settingsobj.__dict__.keys():
+            if k[0]=='_':
+                continue
+            v = settingsobj.__dict__[k]
+            if isinstance(v,kgit.SettingsProperty):
+                d[k] = v.to_yamldic()
+                
+            elif isinstance(v,kgit.YAMLObject):
+                d[k] = self.settings2dict(v)
+        return d
 
     def restoreDefaults(self, checked):
         dir_path = Path(__file__).parent.parent.parent

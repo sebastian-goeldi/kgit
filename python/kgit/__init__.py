@@ -28,8 +28,9 @@ def getRepos(path  = None):
     return ymlrepos
 
 def getRemoteRepos():
-    if settings.repository():
-        url = urlopen(settings.repository())
+    urlstr = settings.repository.url()
+    if urlstr:
+        url = urlopen(urlstr)
         remoterepos = yaml.safe_load(url.read())
         repos = []
         for r in remoterepos['repository']:
@@ -37,25 +38,33 @@ def getRemoteRepos():
             repo = yaml.safe_load(f.read())
             repos.append(repo)
         return repos
-    else:
-        raise AttribueError("No Repository defined")
+    #else:
+    #    raise AttributeError("No Repository defined")
 
 def updateRepos(repos : 'list(pathlib.Path of yamlFile)'):
     for repopath in repos:
         repodic = yaml.safe_load(repopath.read_text())
-        if not 'subdir' in repodic:
-            repodic['subdir']=''
-        repopathnosubdir = pathlib.Path('/'.join([item for item in repopath.parent.resolve().parts if item not in repodic['subdir']]).replace('//','/'))
+        #if not 'subdir' in repodic:
+        #    repodic['subdir']=None
         if is_git_repo(repopath.parent):
             repo = git.Repo(repopath.parent)
-            repo.remotes.origin.pull('master')
-        elif is_git_repo(repopathnosubdir):
-            repo = git.Repo(repopathnosubdir)
-            repo.remotes.origin.pull('master')
-            repo.git.checkout()
+            if repo.git.status('s'):
+                print(f'{repopath.parent} has uncommited modifcations')
+                repo.git.fetch()
+            else:
+                repo.remotes.origin.pull('master')
+        elif 'subdir' in repodic:
+            repopathnosubdir = pathlib.Path('/'.join([item for item in repopath.parent.resolve().parts if item not in repodic['subdir']]).replace('//','/'))
+            if is_git_repo(repopathnosubdir):
+                repo = git.Repo(repopathnosubdir)
+                repo.remotes.origin.pull('master')
+                repo.git.checkout()
             
+            else:
+                cloneRepo(url=repodic['url'],gitsubdir=repodic['subdir'],packsubdir=repopath.parent)
         else:
-            cloneRepo(url=repodic['url'],gitsubdir=repodic['subdir'],packsubdir=repopath.parent)
+            cloneRepo(url=repodic['url'],packsubdir=repopath.parent)
+            #ValueError(f'Unable to find a git repository for path {repopath}')
             
         
 def checkoutTag(repopath, tag : str):
@@ -88,7 +97,11 @@ def cloneRepo(url : str, gitsubdir : str=None, packsubdir : str=None):
     else:
         package_path = (klayout_path[0] / packsubdir)
         package_path.mkdir(parents=True,exist_ok=True)
-        repo = git.Repo.clone_from(url, package_path)
+        repo = git.Repo.init(package_path)
+        repo.git.remote('add','-f','origin',url)
+        repo.git.fetch()
+        repo.git.reset('origin/master','mixed')
+        repo.git.checkout('origin/master','grain.xml')
         
 
 def is_git_repo(path):
@@ -106,7 +119,6 @@ class YAMLObject:
         self._master = master
         d = self.read_yml(dic)
         vars(self).update(d)
-        pass
         
     def read_yml(self,dic : dict):
       d = dict()
@@ -122,6 +134,10 @@ class YAMLObject:
             description = v['description']
           else:
             description = None
+          if 'ro' in v:
+            ro = v['ro']
+          else:
+            ro = False
           if self._master:
             d[k] = SettingsProperty(value,typ,description,attributes={'yamldic' : self._master._yamldic})
           else:
@@ -148,6 +164,10 @@ class SettingsProperty:
   def __init__(self, value, typ="string", description=None, attributes=None):
     self.value,self.type = SettingsProperty.get_valuetype(value,typ,attributes)
     self.description = description
+    if 'ro' in attributes:
+        self.ro = True
+    else:
+        self.ro = False
   
   def __call__(self):
       if self.type is YAMLListIndex:
@@ -172,6 +192,31 @@ class SettingsProperty:
         return float(value),float
       else:
         raise AttributeError(f'Unknown type {strtype}')
+        
+  def to_yamldic(self):
+    d = {'value': self.value, 'description': self.description}
+    if self.ro:
+        d['ro'] = True
+    if self.type is str:
+    #if isinstance(self.type,str):
+        d['type']= 'string'
+    if self.type is YAMLListIndex:
+    #elif isinstance(self.type,YAMLListIndex):
+        d['value'] = f'{self.value.listname}[{self.value.index}]'
+        d['type'] = 'listindex'
+    if self.type is bool:
+    #elif isinstance(self.type,bool):
+        d['type'] = 'bool'
+    if self.type is int:
+    #elif isinstance(self.type,int):
+        d['type'] = 'int'
+    if self.type is float:
+    #elif isinstance(self.type,float):
+        d['type'] = 'float'
+    if self.type is list:
+    #elif isinstance(self.type,list):
+        d['type'] = 'list'
+    return d
 
 def load_settings(path):
     #global settings
@@ -181,8 +226,11 @@ def load_settings(path):
 settings_path = pathlib.Path(__file__).resolve().parent.parent.parent / "settings.yml"
 default_path = pathlib.Path(__file__).resolve().parent.parent.parent / "default-settings.yml"
 
-def reload_settings():
-  load_settings(settings_path)
+def reload_settings(path):
+    if path.is_file():
+        load_settings(path)
+    else:
+        load_settings(default_path)
 
 default = load_settings(default_path)
 if settings_path.is_file():
