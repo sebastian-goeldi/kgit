@@ -63,9 +63,13 @@ class Dialog(pya.QDialog):
         vb = pya.QVBoxLayout(groupbox)
         self.settings['repository'] = {}
         repdic = self.settings['repository']
-        repdic['url'] = (kgit.settings.repository.url(),kgit.settings.repository.url)
+        repdic['url'] = [kgit.settings.repository.url(),kgit.settings.repository.url]
         l = pya.QHBoxLayout()
         le = pya.QLineEdit(repdic['url'][0],self)
+        def assignurl(text):
+            repdic['url'][0] = text
+        le.textChanged = assignurl
+        #le.textChanged.connect(lambda text: repdic['url']=text)
         la = pya.QLabel(kgit.settings.repository.url.description,self)
         l.addWidget(le)
         l.addWidget(la)
@@ -79,8 +83,8 @@ class Dialog(pya.QDialog):
         vb = pya.QVBoxLayout(groupbox)
         self.settings['logging'] = {}
         logdic = self.settings['logging']
-        logdic['filelvl'] = (kgit.settings.logging.logfilelevel.value.index,kgit.settings.logging.logfilelevel)
-        logdic['streamlvl'] = (kgit.settings.logging.logstreamlevel.value.index,kgit.settings.logging.logstreamlevel)
+        logdic['filelvl'] = [kgit.settings.logging.logfilelevel.value.index,kgit.settings.logging.logfilelevel]
+        logdic['streamlvl'] = [kgit.settings.logging.logstreamlevel.value.index,kgit.settings.logging.logstreamlevel]
         ## File Logging
         v = pya.QComboBox(self)
         l = pya.QHBoxLayout()
@@ -90,6 +94,9 @@ class Dialog(pya.QDialog):
         vb.addLayout(l)
         l.addWidget(v)
         d = pya.QLabel(kgit.settings.logging.logfilelevel.description, self)
+        def logfileindexchanged(index):
+            logdic['filelvl'][0] = index
+        v.currentIndexChanged = logfileindexchanged
         l.addWidget(d)
         l.addStretch()
         ## Stream Logging
@@ -101,6 +108,9 @@ class Dialog(pya.QDialog):
         vb.addLayout(l)
         l.addWidget(v)
         d = pya.QLabel(kgit.settings.logging.logfilelevel.description, self)
+        def logfileindexchanged(index):
+            logdic['streamlvl'][0] = index
+        v.logfileindexchanged = logfileindexchanged
         l.addWidget(d)
         l.addStretch()
         vbox.addStretch()
@@ -224,7 +234,11 @@ class Dialog(pya.QDialog):
             v = self.settings[c]
             for s in v.keys():
                 #setattr(getattr(getattr(kgit.settings, c), s), 'value', self.settings[c][s][0])
-                setattr(self.settings[c][s][1],'value',self.settings[c][s][0])
+                if self.settings[c][s][1].type is kgit.YAMLListIndex:
+                    self.settings[c][s][1].value.index = self.settings[c][s][0]
+                else:
+                    #setattr(self.settings[c][s][1],'value',self.settings[c][s][0])
+                    self.settings[c][s][1].value = self.settings[c][s][0]
         sdict = self.settings2dict(kgit.settings)
         
         with open(kgit.settings_path, 'w') as f:
