@@ -262,10 +262,6 @@ class Dialog(pya.QDialog):
         return d
 
     def restoreDefaults(self, checked):
-        dir_path = Path(__file__).parent.parent.parent
-        sf = dir_path / "settings.json"
-        df = dir_path / "default-settings.json"
-
         msg = pya.QMessageBox(pya.QMessageBox.Warning,
                               "Reload Default Settings",
                               "Restore default Settings?\nThis will close this dialog and reload the default settings.",

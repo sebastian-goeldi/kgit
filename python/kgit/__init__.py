@@ -39,8 +39,6 @@ def getRemoteRepos():
             repo = yaml.safe_load(f.read())
             repos.append(repo)
         return repos
-    #else:
-    #    raise AttributeError("No Repository defined")
 
 def updateRepos(repos : 'list(pathlib.Path of yamlFile)'):
     
@@ -234,6 +232,20 @@ def load_settings(path):
     #global settings
     with open(path, 'r') as infile:
         return YAMLObject(yaml.safe_load(infile))
+        
+def restore_default():
+    msg = pya.QMessageBox(pya.QMessageBox.Warning,
+                              "Settings Version out of date",
+                              "Restore default Settings?\nThis will ensure that your settings file is up-to-date and no errors occur. " \
+                              "If you abort, you have to ensure yourself that your settings have all the entries which " \
+                              "are present in the default-settings.yml file",
+                              pya.QMessageBox.StandardButton.Cancel | pya.QMessageBox.StandardButton.Ok)
+    res = msg.exec_()
+    if res == pya.QMessageBox.Ok.to_i():
+        settings_path.write_bytes(default_path.read_bytes())
+        load_settings(settings_path)
+    return res
+
 
 settings_path = pathlib.Path(__file__).resolve().parent.parent.parent / "settings.yml"
 default_path = pathlib.Path(__file__).resolve().parent.parent.parent / "default-settings.yml"
@@ -249,7 +261,9 @@ if settings_path.is_file():
   settings = load_settings(settings_path)
 else:
   settings = load_settings(default_path)
-
+if settings.version() < default.version():
+    restore_default()
+    
 logfile_path = settings_path.parent / "kgit.log"
 logger = logging.getLogger('kgit')
 logger.setLevel(logging.DEBUG)
