@@ -3,7 +3,7 @@
  <name>kgit</name>
  <token/>
  <hidden>false</hidden>
- <version>0.0.2</version>
+ <version>0.0.3</version>
  <api-version/>
  <title>Package Manager for Git</title>
  <doc>This package provides the possibility to checkout or sparse-checkout a git repository using the python git module.</doc>
