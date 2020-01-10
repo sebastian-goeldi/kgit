@@ -28,8 +28,13 @@ kgit_action.title = "Manage Git Packages"
 kgit_action.on_triggered = kgit.menu.open_dialog
 kgit_action.icon = str(iconpath)
 kgit_action.icon_text = "KLayout Git"
+update_action = pya.Action()
+update_action.title = 'Update Git Repositories'
+update_action.on_triggered = lambda : kgit.updateRepos(kgit.getRepos())
+
 if not menu.is_menu('kgit_menu'):
     menu.insert_separator('tools_menu.technologies+','kgit_group')
     menu.insert_item('tools_menu.kgit_group+',"kgit_menu",kgit_action)
+    menu.insert_item('tools_menu.kgit_menu+','kgit_update',update_action)
 </text>
 </klayout-macro>

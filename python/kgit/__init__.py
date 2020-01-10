@@ -1,3 +1,4 @@
+# $autorun
 import pya
 import pathlib
 import xml.etree.ElementTree as ET
@@ -42,7 +43,15 @@ def getRemoteRepos():
     #    raise AttributeError("No Repository defined")
 
 def updateRepos(repos : 'list(pathlib.Path of yamlFile)'):
+    
+    bar = pya.RelativeProgress('Updating Repositories',len(repos))
+    app = pya.Application.instance()
+    app.process_events()
+    i = 1
     for repopath in repos:
+    
+        bar.format = f'Updating Repository {repopath}\t{i}/{len(repos)}'
+        
         repodic = yaml.safe_load(repopath.read_text())
         #if not 'subdir' in repodic:
         #    repodic['subdir']=None
@@ -65,6 +74,9 @@ def updateRepos(repos : 'list(pathlib.Path of yamlFile)'):
         else:
             cloneRepo(url=repodic['url'],packsubdir=repopath.parent)
             #ValueError(f'Unable to find a git repository for path {repopath}')
+            
+        bar.inc()
+        app.process_events()
             
         
 def checkoutTag(repopath, tag : str):
@@ -252,4 +264,4 @@ _ch.setFormatter(_formatter)
 logger.addHandler(_fh)
 logger.addHandler(_ch)
 
-updateRepos(getRepos())
+#updateRepos(getRepos())

@@ -7,10 +7,7 @@ import git
 class Dialog(pya.QDialog):
 
     def __init__(self, parent=None):
-    
-    
         self.repolist = None
-        #self.loadRepos()
     
         self.vbox,self.tabw = self.tabWindow()
         self.setLayout(self.vbox)
@@ -55,7 +52,7 @@ class Dialog(pya.QDialog):
 
         vboxbuttons.addStretch()
         
-        # General Settings
+        # Repository Settings
         
         cat = 'Repository'
         groupbox = pya.QGroupBox(cat,self)
@@ -69,10 +66,21 @@ class Dialog(pya.QDialog):
         def assignurl(text):
             repdic['url'][0] = text
         le.textChanged = assignurl
-        #le.textChanged.connect(lambda text: repdic['url']=text)
         la = pya.QLabel(kgit.settings.repository.url.description,self)
         l.addWidget(le)
         l.addWidget(la)
+        vb.addLayout(l)
+        l = pya.QHBoxLayout()
+        repdic['autoupdate'] = [kgit.settings.repository.autoupdate(),kgit.settings.repository.autoupdate]
+        b = pya.QCheckBox(kgit.settings.repository.autoupdate.description, groupbox)
+        if repdic['autoupdate'][0]:
+            b.setChecked(True)
+        else:
+            b.setChecked(False)
+        def updateclicked(checked):
+            repdic['autoupdate'][0] = checked
+        b.toggled = updateclicked
+        l.addWidget(b)
         vb.addLayout(l)
         
         # Log settings
@@ -145,7 +153,6 @@ class Dialog(pya.QDialog):
         
         for r in repos:
             s = yaml.safe_load(r.read_text())
-            whatsthis=s['name']
             if '/' in s['name']:
                 description = (f"Name:\t\t{s['name'].rsplit('/',1)[1]}\n"
                                f"Project:\t\t{s['name'].rsplit('/',1)[0]}\n"
@@ -153,9 +160,9 @@ class Dialog(pya.QDialog):
             else:
                 description = f"Name:\t\t{s['name']}\n"
             description += "Location:\t\tlocal\n"
-            #if 'author' in s:
-            #    description += f"Author:\t\t{s['author']}\n"
-            #    pass
+            if 'author' in s:
+                description += f"Author:\t\t{s['author']}\n"
+                pass
             description += f"Project URL:\t\t{s['url']}"
             if 'subdir' in s:
                 description += f"\nProject Sub-URL:\t{s['subdir']}"
@@ -163,7 +170,7 @@ class Dialog(pya.QDialog):
             item.whatsThis=s['name']
             repo = git.Repo(r.parent)
             if repo.git.status('s'):
-                item.backgroundColor=pya.QColor(255,255,0)
+                pass
             items.append(item)
             self.repolist.addItem(item)
         remoterepos = kgit.getRemoteRepos()
@@ -178,9 +185,6 @@ class Dialog(pya.QDialog):
                 else:
                     description = f"Name:\t\t{r['name']}\n"
                 description += "Location:\t\tremote\n"
-                #if 'author' in r:
-                #    description += f"Author:\t\t{r['author']}\n"
-                #    pass
                 description += f"Project URL:\t\t{r['url']}"
                 if 'subdir' in r:
                     description += f"\nProject Sub-URL:\t{r['subdir']}"
@@ -233,11 +237,9 @@ class Dialog(pya.QDialog):
         for c in self.settings.keys():
             v = self.settings[c]
             for s in v.keys():
-                #setattr(getattr(getattr(kgit.settings, c), s), 'value', self.settings[c][s][0])
                 if self.settings[c][s][1].type is kgit.YAMLListIndex:
                     self.settings[c][s][1].value.index = self.settings[c][s][0]
                 else:
-                    #setattr(self.settings[c][s][1],'value',self.settings[c][s][0])
                     self.settings[c][s][1].value = self.settings[c][s][0]
         sdict = self.settings2dict(kgit.settings)
         
@@ -269,7 +271,6 @@ class Dialog(pya.QDialog):
                               "Restore default Settings?\nThis will close this dialog and reload the default settings.",
                               pya.QMessageBox.StandardButton.Cancel | pya.QMessageBox.StandardButton.Ok,
                               self)
-        # msg.setStandardButtons(pya.QMessageBox.StandardButton.Ok | pya.QMessageBox.StandardButton.Cancel)
         res = msg.exec_()
         if res == pya.QMessageBox.Ok.to_i():
             kgit.settings_path.write_bytes(kgit.default_path.read_bytes())

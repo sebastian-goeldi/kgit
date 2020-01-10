@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <klayout-macro>
- <description/>
+ <description>Update Git Packages on Startup</description>
  <version/>
  <category>pymacros</category>
  <prolog/>
  <epilog/>
  <doc/>
- <autorun>false</autorun>
+ <autorun>true</autorun>
  <autorun-early>false</autorun-early>
  <shortcut/>
  <show-in-menu>false</show-in-menu>
- <group-name/>
- <menu-path/>
+ <group-name>kgit_group</group-name>
+ <menu-path>tools_menu.kgit_menu+</menu-path>
  <interpreter>python</interpreter>
  <dsl-interpreter-name/>
  <text>import pya
@@ -20,5 +20,6 @@ import kgit
 from pathlib import Path
 import xml.etree.ElementTree as ET
 
-kgit.updateRepos(kgit.getRepos())</text>
+if kgit.settings.repository.autoupdate():
+    kgit.updateRepos(kgit.getRepos())</text>
 </klayout-macro>
